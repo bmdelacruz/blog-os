@@ -1,0 +1,17 @@
+[package]
+name = "blog_os"
+version = "0.1.0"
+authors = ["Bryan Dela Cruz <bryanmdlx@gmail.com>"]
+edition = "2018"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+
+[package.metadata.bootimage]
+default-target = "x86_64-blog_os.json"
+
+[dependencies]
+bootloader = "0.4.0"
