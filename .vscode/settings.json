@@ -1,0 +1,4 @@
+{
+  "rust-client.channel": "nightly-2019-03-15",
+  "rust.all_targets": false
+}
