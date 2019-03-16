@@ -2,8 +2,8 @@
 #![cfg_attr(not(test), no_main)]
 #![cfg_attr(test, allow(unused_imports))]
 
-mod vga_buffer;
-mod serial;
+use blog_os::println;
+use blog_os::serial_println;
 
 use core::panic::PanicInfo;
 
@@ -17,8 +17,14 @@ fn panic(info: &PanicInfo) -> ! {
 #[cfg(not(test))]
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-  print!("The big brown fox jumps over the lazy dog. Lorem ipsum dolor sit amet consectetur adipiscing elit. ");
-  serial_print!("The big brown fox jumps over the lazy dog. Lorem ipsum dolor sit amet consectetur adipiscing elit.");
+  println!("system started up");
+  serial_println!("system started up");
+
+  blog_os::interrupts::init_idt();
+
+  x86_64::instructions::interrupts::int3();
+
+  println!("it did not fucking crash!!");
 
   loop {}
 }
