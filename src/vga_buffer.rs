@@ -51,7 +51,9 @@ struct Buffer {
 }
 
 pub struct Writer {
+  row_position: usize,
   column_position: usize,
+  has_pending_new_line: bool,
   color_code: ColorCode,
   buffer: &'static mut Buffer,
 }
@@ -68,13 +70,13 @@ impl Writer {
 
   pub fn write_byte(&mut self, byte: u8) {
     match byte {
-      b'\n' => self.new_line(),
+      b'\n' => self.postpone_new_line(),
       byte => {
-        if self.column_position >= BUFFER_WIDTH {
+        if self.has_pending_new_line || self.column_position >= BUFFER_WIDTH {
           self.new_line();
         }
 
-        let row = BUFFER_HEIGHT - 1;
+        let row = self.row_position;
         let col = self.column_position;
         let color_code = self.color_code;
 
@@ -82,21 +84,34 @@ impl Writer {
           ascii_character: byte,
           color_code,
         });
+
         self.column_position += 1;
       }
     }
   }
 
+  fn postpone_new_line(&mut self) {
+    if self.has_pending_new_line {
+      self.new_line();
+    }
+    self.has_pending_new_line = true;
+  }
+
   fn new_line(&mut self) {
-    for row in 1..BUFFER_HEIGHT {
-      for col in 0..BUFFER_WIDTH {
-        let character = self.buffer.chars[row][col].read();
-        self.buffer.chars[row - 1][col].write(character);
+    if self.row_position >= BUFFER_HEIGHT - 1 {
+      for row in 1..BUFFER_HEIGHT {
+        for col in 0..BUFFER_WIDTH {
+          let character = self.buffer.chars[row][col].read();
+          self.buffer.chars[row - 1][col].write(character);
+        }
       }
+      self.clear_row(BUFFER_HEIGHT - 1);
+    } else {
+      self.row_position += 1;
     }
 
-    self.clear_row(BUFFER_HEIGHT - 1);
     self.column_position = 0;
+    self.has_pending_new_line = false;
   }
 
   fn clear_row(&mut self, row: usize) {
@@ -119,7 +134,9 @@ impl fmt::Write for Writer {
 
 lazy_static! {
   pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
+    row_position: 0,
     column_position: 0,
+    has_pending_new_line: false,
     color_code: ColorCode::new(Color::Yellow, Color::Black),
     buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
   });

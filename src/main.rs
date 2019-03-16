@@ -16,9 +16,13 @@ fn panic(info: &PanicInfo) -> ! {
 #[cfg(not(test))]
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-  println!("Hello, world! {}", "-NoX");
+  print!("The big brown fox jumps over the lazy dog. Lorem ipsum dolor sit amet consectetur adipiscing elit. ");
+  for _x in 0..100000 {}
 
-  panic!("MAKE SOME NOIIIISSSEEE!");
+  print!("The big brown fox jumps over the lazy dog. Lorem ipsum dolor sit amet consectetur adipiscing elit. ");
+  for _x in 0..100000 {}
+
+  print!("The big brown fox jumps over the lazy dog. Lorem ipsum dolor sit amet consectetur adipiscing elit.");
 
   loop {}
 }
