@@ -158,3 +158,99 @@ macro_rules! println {
   () => ($crate::print!("\n"));
   ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
 }
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  fn construct_writer() -> Writer {
+    use std::boxed::Box;
+
+    let buffer = construct_buffer();
+
+    Writer {
+      row_position: 0,
+      column_position: 0,
+      has_pending_new_line: false,
+      color_code: ColorCode::new(Color::Yellow, Color::Blue),
+      buffer: Box::leak(Box::new(buffer)),
+    }
+  }
+
+  fn construct_buffer() -> Buffer {
+    use array_init::array_init;
+
+    Buffer {
+      chars: array_init(|_| array_init(|_| Volatile::new(empty_char()))),
+    }
+  }
+
+  fn empty_char() -> ScreenChar {
+    ScreenChar {
+      ascii_character: b' ',
+      color_code: ColorCode::new(Color::Blue, Color::Yellow),
+    }
+  }
+
+  #[test]
+  fn write_byte() {
+    let mut writer = construct_writer();
+
+    writer.write_byte(b'X');
+    writer.write_byte(b'Y');
+    writer.write_byte(b'\n');
+    writer.write_byte(b'Z');
+
+    for (i, row) in writer.buffer.chars.iter().enumerate() {
+      for (j, screen_char) in row.iter().enumerate() {
+        let screen_char = screen_char.read();
+        if i == 0 && j == 0 {
+          assert_eq!(screen_char.ascii_character, b'X');
+          assert_eq!(screen_char.color_code, writer.color_code);
+        } else if i == 0 && j == 1 {
+          assert_eq!(screen_char.ascii_character, b'Y');
+          assert_eq!(screen_char.color_code, writer.color_code);
+        } else if i == 1 && j == 0 {
+          assert_eq!(screen_char.ascii_character, b'Z');
+          assert_eq!(screen_char.color_code, writer.color_code);
+        } else {
+          assert_eq!(screen_char, empty_char());
+        }
+      }
+    }
+  }
+
+  #[test]
+  fn write_string() {
+    let mut writer = construct_writer();
+
+    writer.write_string("The big brown fox jumps over the lazy god. ");
+    writer.write_string("Lorem ipsum dolor sit amet consectetur adipiscing elit.");
+    writer.write_byte(b'\n');
+    writer.write_string("The big brown fox jumps over the lazy god. ");
+    writer.write_string("Lorem ipsum dolor sit amet consectetur adipiscing elit. ");
+    writer.write_string("The big brown fox jumps over the lazy god. ");
+    writer.write_string("Lorem ipsum dolor sit amet consectetur adipiscing elit.");
+
+    for (i, row) in writer.buffer.chars.iter().enumerate() {
+      for (j, screen_char) in row.iter().enumerate() {
+        let screen_char = screen_char.read();
+        if i == 0 && j == 79 {
+          assert_eq!(screen_char.ascii_character, b'u');
+          assert_eq!(screen_char.color_code, writer.color_code);
+        } else if i == 1 && j == 0 {
+          assert_eq!(screen_char.ascii_character, b'r');
+          assert_eq!(screen_char.color_code, writer.color_code);
+        } else if i == 2 && j == 0 {
+          assert_eq!(screen_char.ascii_character, b'T');
+          assert_eq!(screen_char.color_code, writer.color_code);
+        } else if i == 4 && j == 0 {
+          assert_eq!(screen_char.ascii_character, b's');
+          assert_eq!(screen_char.color_code, writer.color_code);
+        } else if (i == 1 && j > 17) || (i == 4 && j > 36) || i > 4 {
+          assert_eq!(screen_char, empty_char());
+        }
+      }
+    }
+  }
+}
