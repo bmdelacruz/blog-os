@@ -3,6 +3,7 @@
 #![cfg_attr(test, allow(unused_imports))]
 
 mod vga_buffer;
+mod serial;
 
 use core::panic::PanicInfo;
 
@@ -17,12 +18,7 @@ fn panic(info: &PanicInfo) -> ! {
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
   print!("The big brown fox jumps over the lazy dog. Lorem ipsum dolor sit amet consectetur adipiscing elit. ");
-  for _x in 0..100000 {}
-
-  print!("The big brown fox jumps over the lazy dog. Lorem ipsum dolor sit amet consectetur adipiscing elit. ");
-  for _x in 0..100000 {}
-
-  print!("The big brown fox jumps over the lazy dog. Lorem ipsum dolor sit amet consectetur adipiscing elit.");
+  serial_print!("The big brown fox jumps over the lazy dog. Lorem ipsum dolor sit amet consectetur adipiscing elit.");
 
   loop {}
 }
