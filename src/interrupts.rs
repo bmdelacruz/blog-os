@@ -7,13 +7,14 @@ use pic8259_simple::ChainedPics;
 use spin::Mutex;
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::structures::idt::InterruptDescriptorTable;
+use x86_64::structures::idt::PageFaultErrorCode;
 
 lazy_static! {
   static ref IDT: InterruptDescriptorTable = {
     let mut idt = InterruptDescriptorTable::new();
 
-    idt.breakpoint
-      .set_handler_fn(breakpoint_handler);
+    idt.breakpoint.set_handler_fn(breakpoint_handler);
+    idt.page_fault.set_handler_fn(page_fault_handler);
     
     unsafe {
       idt.double_fault
@@ -37,13 +38,25 @@ pub fn init_idt() {
 extern "x86-interrupt" fn breakpoint_handler(
   stack_frame: &mut InterruptStackFrame
 ) {
-  serial_println!("[BREAKPOINT] {:#?}", stack_frame);
+  serial_println!("[BREAKPOINT] {:?}", stack_frame);
 }
 
 extern "x86-interrupt" fn double_fault_handler(
   stack_frame: &mut InterruptStackFrame, error_code: u64
 ) {
-  serial_println!("[DOUBLE_FAULT:{}] {:#?}", error_code, stack_frame);
+  serial_println!("[DOUBLE_FAULT:{}] {:?}", error_code, stack_frame);
+
+  hlt_loop();
+}
+
+extern "x86-interrupt" fn page_fault_handler(
+  stack_frame: &mut InterruptStackFrame, error_code: PageFaultErrorCode
+) {
+  use x86_64::registers::control::Cr2;
+
+  serial_println!(
+    "[PAGE_FAULT:{:?}:{:?}] {:?}", Cr2::read(), error_code, stack_frame
+  );
 
   hlt_loop();
 }
