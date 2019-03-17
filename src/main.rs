@@ -20,9 +20,14 @@ pub extern "C" fn _start() -> ! {
   println!("system started up");
   serial_println!("system started up");
 
+  blog_os::gdt::init();
   blog_os::interrupts::init_idt();
 
-  x86_64::instructions::interrupts::int3();
+  fn so() {
+    so();
+  }
+
+  so();
 
   println!("it did not fucking crash!!");
 
