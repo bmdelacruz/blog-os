@@ -30,9 +30,11 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
   let mut mapper = unsafe {
     blog_os::memory::init(boot_info.physical_memory_offset)
   };
-  let mut frame_allocator = blog_os::memory::EmptyFrameAllocator;
+  let mut frame_allocator = blog_os::memory::init_frame_allocator(
+    &boot_info.memory_map
+  );
 
-  let page = Page::containing_address(VirtAddr::new(0xdea_dbee_f000));
+  let page = Page::containing_address(VirtAddr::new(0xdead_beef_0000));
   blog_os::memory::create_example_mapping(
     page, &mut mapper, &mut frame_allocator
   );

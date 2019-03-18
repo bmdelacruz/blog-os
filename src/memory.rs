@@ -1,3 +1,5 @@
+use bootloader::bootinfo::MemoryMap;
+use bootloader::bootinfo::MemoryRegionType;
 use x86_64::PhysAddr;
 use x86_64::VirtAddr;
 use x86_64::registers::control::Cr3;
@@ -46,4 +48,35 @@ impl FrameAllocator<Size4KiB> for EmptyFrameAllocator {
   fn allocate_frame(&mut self) -> Option<PhysFrame> {
     None
   }
+}
+
+pub struct BootInfoFrameAllocator<I> where I: Iterator<Item = PhysFrame> {
+  frames: I,
+}
+
+impl<I> FrameAllocator<Size4KiB> for BootInfoFrameAllocator<I> 
+  where I: Iterator<Item = PhysFrame>
+{
+  fn allocate_frame(&mut self) -> Option<PhysFrame> {
+    self.frames.next()
+  }
+}
+
+pub fn init_frame_allocator(
+  memory_map: &'static MemoryMap,
+) -> BootInfoFrameAllocator<impl Iterator<Item = PhysFrame>> {
+  let regions = memory_map.iter().filter(
+    |r| r.region_type == MemoryRegionType::Usable
+  );
+  let addr_ranges = regions.map(
+    |r| r.range.start_addr()..r.range.end_addr()
+  );
+  let frame_addresses = addr_ranges.flat_map(
+    |r| r.step_by(4096)
+  );
+  let frames = frame_addresses.map(|addr| {
+    PhysFrame::containing_address(PhysAddr::new(addr))
+  });
+
+  BootInfoFrameAllocator { frames }
 }
